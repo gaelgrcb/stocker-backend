@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.sql.Date;
+import java.time.LocalDate;
 
 @Data
 @Entity
@@ -18,7 +18,7 @@ public class Sale {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    private Date date;
+    private LocalDate date;
     private int total_sale;
     private BigDecimal total_earnings;
 }
