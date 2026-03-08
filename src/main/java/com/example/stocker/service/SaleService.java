@@ -19,7 +19,6 @@ public class SaleService {
     private final SaleRepository saleRepository;
     private final SaleDetailRepository saleDetailRepository;
     private final InventoryRepository inventoryRepository;
-    private final ProductRepository productRepository;
 
     @Transactional
     public Sale createSale(List<Product> products, List<Integer> quantities, User user) {
@@ -31,28 +30,24 @@ public class SaleService {
 
         for (int i = 0; i < products.size(); i++){
             Product product = products.get(i);
-            int quantityToSell = quantities.get(i);
+            int qty = quantities.get(i);
 
-            Integer stock = inventoryRepository.getStockSpecific(user, product);
-            int currentStock = (stock != null) ? stock : 0;
-            if (currentStock <= 0){
-                throw new RuntimeException("No hay suficientes productos para realizar esta venta");
+            Inventory inventory = inventoryRepository.findByProduct(product)
+                    .orElseThrow(() -> new RuntimeException("No existe inventario para: " + product.getName()));
+
+            if (inventory.getAvailable_quantity() < qty) {
+                throw new RuntimeException("Stock insuficiente para " + product.getName());
             }
 
-            int newQuantity = currentStock - quantityToSell;
-            Optional<Inventory> inventoryOp = inventoryRepository.findByProduct(product);
-            Inventory inventory = inventoryOp.get();
-
-            inventory.setAvailable_quantity(newQuantity);
+            inventory.setAvailable_quantity(inventory.getAvailable_quantity() - qty);
             inventoryRepository.save(inventory);
 
-            BigDecimal priceOfStock = productRepository.findPriceByUserAndName(user, product.getName());
-            BigDecimal subtotal = priceOfStock.multiply(BigDecimal.valueOf(quantityToSell));
+            BigDecimal subtotal = product.getPrice().multiply(BigDecimal.valueOf(qty));
 
             SaleDetail detail = new SaleDetail();
             detail.setSale(newSale);
             detail.setProduct(product);
-            detail.setQuantity(quantityToSell);
+            detail.setQuantity(qty);
             detail.setPrice_applied(subtotal);
             saleDetailRepository.save(detail);
 
