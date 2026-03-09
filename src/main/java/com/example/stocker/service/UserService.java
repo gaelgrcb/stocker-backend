@@ -16,7 +16,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public User register(UserRegistrationDTO registrationData) {
+    public UserResponseDTO register(UserRegistrationDTO registrationData) {
         if (userRepository.findByUsername(registrationData.username).isPresent()) {
             throw new RuntimeException("El usuario ya está registrado");
         }
@@ -25,22 +25,28 @@ public class UserService {
         user.setName(registrationData.name);
         user.setEmail(registrationData.email);
         user.setUsername(registrationData.username);
+        user.setRole("user");
 
         String encryptPass = passwordEncoder.encode(registrationData.password);
         user.setPassword(encryptPass);
 
-        return userRepository.save(user);
+        userRepository.save(user);
+        return new UserResponseDTO(
+                user.getUsername()
+        );
     }
 
-    public User login(String username, String password){
-        User user = userRepository.findByUsername(username)
+    public UserResponseDTO login(UserLoginDTO loginData) {
+        User user = userRepository.findByUsername(loginData.username())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        if (!passwordEncoder.matches(password, user.getPassword())){
+        if (!passwordEncoder.matches(loginData.password(), user.getPassword())) {
             throw new RuntimeException("Contraseña incorrecta");
         }
 
-        return user;
+        return new UserResponseDTO(
+                user.getUsername()
+        );
     }
 
     public record UserRegistrationDTO(
@@ -48,5 +54,14 @@ public class UserService {
             String email,
             String username,
             String password
+    ) {}
+
+    public record UserLoginDTO(
+            String username,
+            String password
+    ) {}
+
+    public record UserResponseDTO(
+            String username
     ) {}
 }
