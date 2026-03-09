@@ -57,6 +57,38 @@ public class ProductService{
         return productData;
     }
 
+    public productDTO deleteProduct(productDTO productData, User user){
+        Product product = productRepository.findByNameAndModelAndFlavorAndUser(
+                productData.name(),
+                productData.model(),
+                productData.flavor(),
+                user
+        ).orElseThrow(() -> new RuntimeException("No se encontró el producto exacto para eliminar"));
+
+        productRepository.delete(product);
+
+        return productData;
+    }
+
+    public productDTO editProduct(productDTO productData, User user){
+        Product product = productRepository.findByNameAndModelAndFlavorAndUser(
+                productData.name(),
+                productData.model(),
+                productData.flavor(),
+                user
+        ).orElseThrow(() -> new RuntimeException("No se encontró el producto exacto para editar"));
+
+        product.setName(productData.name());
+        product.setModel(productData.model());
+        product.setFlavor(productData.flavor());
+        product.setCost(productData.cost());
+        product.setPrice(productData.price());
+
+        productRepository.save(product);
+
+        return productData;
+    }
+
     public record productDTO(
         String name,
         String model,

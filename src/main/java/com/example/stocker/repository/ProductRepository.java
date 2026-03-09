@@ -8,12 +8,15 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByUser(User user);
 
     List<Product> findByNameAndUser(String name, User user);
+
+    Optional<Product> findByNameAndModelAndFlavorAndUser(String name, String model, String flavor, User user);
 
     Boolean existsByNameAndModelAndFlavorAndUser(String name, String model, String flavor, User user);
 
