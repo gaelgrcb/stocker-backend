@@ -14,6 +14,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TokenService tokenService;
 
     @Transactional
     public UserResponseDTO register(UserRegistrationDTO registrationData) {
@@ -31,8 +32,12 @@ public class UserService {
         user.setPassword(encryptPass);
 
         userRepository.save(user);
+
+        String token = tokenService.generateToken(user);
+
         return new UserResponseDTO(
-                user.getUsername()
+                user.getUsername(),
+                token
         );
     }
 
@@ -44,8 +49,11 @@ public class UserService {
             throw new RuntimeException("Contraseña incorrecta");
         }
 
+        String token = tokenService.generateToken(user);
+
         return new UserResponseDTO(
-                user.getUsername()
+                user.getUsername(),
+                token
         );
     }
 
@@ -62,6 +70,7 @@ public class UserService {
     ) {}
 
     public record UserResponseDTO(
-            String username
+            String username,
+            String token
     ) {}
 }

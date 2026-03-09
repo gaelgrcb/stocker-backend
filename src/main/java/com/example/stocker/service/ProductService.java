@@ -9,6 +9,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -23,19 +24,26 @@ public class ProductService{
     }
 
     @Transactional
-    public Product createProduct(Product product, User user){
+    public productDTO createProduct(productDTO productData, User user){
         boolean exist = productRepository.existsByNameAndModelAndFlavorAndUser(
-                product.getName(),
-                product.getModel(),
-                product.getFlavor(),
+                productData.name,
+                productData.model,
+                productData.flavor,
                 user
         );
 
         if (exist){
-            throw new RuntimeException("El producto " + product.getName() + " ya existe para este usuario.");
+            throw new RuntimeException("El producto " + productData.name + " ya existe para este usuario.");
         }
 
+        Product product = new Product();
+        product.setName(productData.name);
+        product.setModel(productData.model);
+        product.setFlavor(productData.flavor);
+        product.setCost(productData.cost);
+        product.setPrice(productData.price);
         product.setUser(user);
+
         Product createdProduct = productRepository.save(product);
 
         Inventory inventory = new Inventory();
@@ -46,6 +54,14 @@ public class ProductService{
 
         inventoryRepository.save(inventory);
 
-        return createdProduct;
+        return productData;
     }
+
+    public record productDTO(
+        String name,
+        String model,
+        String flavor,
+        BigDecimal cost,
+        BigDecimal price
+    ) {}
 }

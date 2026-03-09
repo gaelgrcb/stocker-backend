@@ -11,7 +11,7 @@ public class GlobalExceptionHandler {
     //ERROR 400
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException ex){
-        ErrorResponse error = new ErrorResponse("Datos invalidos: " + ex.getMessage(), HttpStatus.FORBIDDEN.value());
+        ErrorResponse error = new ErrorResponse(ex.getMessage(), HttpStatus.FORBIDDEN.value());
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
     //ERROR 500
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex){
-        ErrorResponse error = new ErrorResponse("Ocurrio un error inesperado: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value());
+        ErrorResponse error = new ErrorResponse(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value());
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
