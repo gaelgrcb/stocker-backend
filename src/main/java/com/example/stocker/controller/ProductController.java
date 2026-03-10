@@ -3,27 +3,53 @@ package com.example.stocker.controller;
 import com.example.stocker.model.User;
 import com.example.stocker.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping("/api/productos")
 @RequiredArgsConstructor
 public class ProductController {
+
     private final ProductService productService;
+
+    @GetMapping
+    public ResponseEntity<List<ProductService.ProductResponseDTO>> getAll(@AuthenticationPrincipal User user) {
+        var products = productService.getProducts(user).stream()
+                .map(p -> new ProductService.ProductResponseDTO(
+                        p.getId(),
+                        p.getName(),
+                        p.getModel(),
+                        p.getFlavor(),
+                        p.getCost(),
+                        p.getPrice()))
+                .toList();
+        return ResponseEntity.ok(products);
+    }
+
     @PostMapping("/create")
-    public ProductService.productDTO create(@RequestBody ProductService.productDTO dto, @AuthenticationPrincipal User user){
-        return productService.createProduct(dto, user);
+    public ResponseEntity<ProductService.ProductResponseDTO> create(
+            @RequestBody ProductService.ProductRequestDTO dto,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(productService.createProduct(dto, user));
     }
-    @PostMapping("/delete")
-    public ProductService.productDTO delete(@RequestBody ProductService.productDTO dto, @AuthenticationPrincipal User user){
-        return productService.deleteProduct(dto, user);
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<Void> delete(
+            @RequestBody ProductService.ProductRequestDTO dto,
+            @AuthenticationPrincipal User user) {
+        productService.deleteProductByAttributes(dto, user);
+        return ResponseEntity.noContent().build();
     }
-    @PostMapping("/edit")
-    public ProductService.productDTO edit(@RequestBody ProductService.productDTO dto, @AuthenticationPrincipal User user){
-        return productService.editProduct(dto, user);
+
+    @PutMapping("/edit")
+    public ResponseEntity<ProductService.ProductResponseDTO> edit(
+            @RequestBody ProductService.ProductRequestDTO dto,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(productService.editProductByAttributes(dto, user));
     }
 }
