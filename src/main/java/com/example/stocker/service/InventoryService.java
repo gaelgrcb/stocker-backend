@@ -5,9 +5,11 @@ import com.example.stocker.model.Product;
 import com.example.stocker.model.User;
 import com.example.stocker.repository.InventoryRepository;
 import com.example.stocker.repository.ProductRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -17,30 +19,58 @@ public class InventoryService {
     private final InventoryRepository inventoryRepository;
     private final ProductRepository productRepository;
 
-    public Inventory addStock(Product product, int quantity, User user) {
-        if (quantity <= 0) {
-            throw new RuntimeException("La cantidad de productos debe ser mayor que cero");
+    @Transactional
+    public InventoryResponseDTO addStock(UpdateStockRequestDTO request, User user) {
+        if (request.quantity() <= 0) {
+            throw new RuntimeException("La cantidad debe ser mayor que cero");
         }
 
-        Optional<Inventory> inventoryOpt = inventoryRepository.findByProduct(product);
+        Product product = productRepository.findByNameAndModelAndFlavorAndUser(
+                request.productName(), request.productModel(), request.productFlavor(), user
+        ).orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
-        if (inventoryOpt.isEmpty()) {
-            throw new RuntimeException("No se encontró registro de inventario para este producto.");
-        }
+        Inventory inventory = inventoryRepository.findByProduct(product)
+                .orElseThrow(() -> new RuntimeException("No hay registro de inventario"));
 
-        Inventory inventory = inventoryOpt.get();
+        inventory.setAvailable_quantity(inventory.getAvailable_quantity() + request.quantity());
+        Inventory updated = inventoryRepository.save(inventory);
 
-        if (!inventory.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("No tienes permiso para modificar este inventario.");
-        }
-
-        int newQuantity = inventory.getAvailable_quantity() + quantity;
-        inventory.setAvailable_quantity(newQuantity);
-
-        return inventoryRepository.save(inventory);
+        return mapToResponseDTO(updated);
     }
 
-    public Optional<Inventory> getStockByUser(User user) {
-        return inventoryRepository.findAllByUser(user);
+    public List<InventoryResponseDTO> getInventoryByUser(User user) {
+        Optional<Inventory> inventories = inventoryRepository.findAllByUser(user);
+        return inventories.stream()
+                .map(this::mapToResponseDTO)
+                .toList();
+    }
+
+    private InventoryResponseDTO mapToResponseDTO(Inventory inventory) {
+        return new InventoryResponseDTO(
+                inventory.getId(),
+                inventory.getProduct().getName(),
+                inventory.getProduct().getModel(),
+                inventory.getProduct().getFlavor(),
+                inventory.getAvailable_quantity(),
+                inventory.getMinimum_alert()
+        );
+    }
+
+    public record InventoryResponseDTO(
+            Long id,
+            String productName,
+            String productModel,
+            String productFlavor,
+            int availableQuantity,
+            int minimumAlert
+    ) {
+    }
+
+    public record UpdateStockRequestDTO(
+            String productName,
+            String productModel,
+            String productFlavor,
+            int quantity
+    ) {
     }
 }

@@ -11,13 +11,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/productos")
+@RequestMapping("/api/products")
 @RequiredArgsConstructor
 public class ProductController {
 
     private final ProductService productService;
 
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<List<ProductService.ProductResponseDTO>> getAll(@AuthenticationPrincipal User user) {
         var products = productService.getProducts(user).stream()
                 .map(p -> new ProductService.ProductResponseDTO(

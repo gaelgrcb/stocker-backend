@@ -22,4 +22,6 @@ public class Product {
     private String flavor;
     private BigDecimal cost;
     private BigDecimal price;
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Inventory inventory;
 }
