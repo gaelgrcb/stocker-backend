@@ -17,43 +17,91 @@ import java.util.Optional;
 public class SaleService {
 
     private final SaleRepository saleRepository;
-    private final SaleDetailRepository saleDetailRepository;
+    private final ProductRepository productRepository;
     private final InventoryRepository inventoryRepository;
+    private final SaleDetailRepository saleDetailRepository;
 
     @Transactional
-    public Sale createSale(List<Product> products, List<Integer> quantities, User user) {
+    public SaleResponseDTO createSale(SaleRequestDTO request, User user) {
         Sale newSale = new Sale();
         newSale.setUser(user);
         newSale.setDate(LocalDate.now());
-        newSale = saleRepository.save(newSale);
+        newSale.setTotal_earnings(BigDecimal.ZERO);
+        final Sale savedSale = saleRepository.save(newSale);
+
         BigDecimal totalFinal = BigDecimal.ZERO;
 
-        for (int i = 0; i < products.size(); i++){
-            Product product = products.get(i);
-            int qty = quantities.get(i);
+        for (SaleItemRequestDTO item : request.items()) {
+            Product product = productRepository.findByNameAndModelAndFlavorAndUser(
+                    item.name(), item.model(), item.flavor(), user
+            ).orElseThrow(() -> new RuntimeException("Producto no encontrado: " + item.name()));
 
             Inventory inventory = inventoryRepository.findByProduct(product)
-                    .orElseThrow(() -> new RuntimeException("No existe inventario para: " + product.getName()));
+                    .orElseThrow(() -> new RuntimeException("Sin inventario para: " + product.getName()));
 
-            if (inventory.getAvailable_quantity() < qty) {
-                throw new RuntimeException("Stock insuficiente para " + product.getName());
+            if (inventory.getAvailable_quantity() < item.quantity()) {
+                throw new RuntimeException("Stock insuficiente para: " + product.getName());
             }
 
-            inventory.setAvailable_quantity(inventory.getAvailable_quantity() - qty);
+            inventory.setAvailable_quantity(inventory.getAvailable_quantity() - item.quantity());
             inventoryRepository.save(inventory);
 
-            BigDecimal subtotal = product.getPrice().multiply(BigDecimal.valueOf(qty));
+            BigDecimal subtotal = product.getPrice().multiply(BigDecimal.valueOf(item.quantity()));
 
             SaleDetail detail = new SaleDetail();
-            detail.setSale(newSale);
+            detail.setSale(savedSale);
             detail.setProduct(product);
-            detail.setQuantity(qty);
-            detail.setPrice_applied(subtotal);
+            detail.setQuantity(item.quantity());
+            detail.setPrice_applied(product.getPrice());
             saleDetailRepository.save(detail);
 
             totalFinal = totalFinal.add(subtotal);
         }
-        newSale.setTotal_earnings(totalFinal);
-        return saleRepository.save(newSale);
+
+        savedSale.setTotal_earnings(totalFinal);
+        saleRepository.save(savedSale);
+
+        return new SaleResponseDTO(
+                savedSale.getId(),
+                savedSale.getDate(),
+                totalFinal,
+                request.items().stream().map(i -> i.name() + " x" + i.quantity()).toList()
+        );
+    }
+
+    @Transactional
+    public List<SaleResponseDTO> getSales(LocalDate startDate, LocalDate endDate, User user) {
+
+        List<Sale> sales = saleRepository.findSalesByFilters(user, startDate, endDate);
+
+        return sales.stream()
+                .map(sale -> new SaleResponseDTO(
+                        sale.getId(),
+                        sale.getDate(),
+                        sale.getTotal_earnings(),
+                        List.of()
+                ))
+                .toList();
+    }
+
+    public record SaleItemRequestDTO(
+            String name,
+            String model,
+            String flavor,
+            int quantity
+    ) {
+    }
+
+    public record SaleRequestDTO(
+            List<SaleItemRequestDTO> items
+    ) {
+    }
+
+    public record SaleResponseDTO(
+            Long saleId,
+            LocalDate date,
+            BigDecimal totalEarnings,
+            List<String> productSummary
+    ) {
     }
 }

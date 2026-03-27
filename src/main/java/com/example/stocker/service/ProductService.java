@@ -46,7 +46,7 @@ public class ProductService {
         Inventory inventory = new Inventory();
         inventory.setProduct(createdProduct);
         inventory.setUser(user);
-        inventory.setAvailable_quantity(0);
+        inventory.setAvailable_quantity(productData.stock() != null ? productData.stock() : 0);
         inventory.setMinimum_alert(5);
 
         inventoryRepository.save(inventory);
@@ -57,7 +57,8 @@ public class ProductService {
                 createdProduct.getModel(),
                 createdProduct.getFlavor(),
                 createdProduct.getCost(),
-                createdProduct.getPrice()
+                createdProduct.getPrice(),
+                inventory.getAvailable_quantity()
         );
     }
 
@@ -78,27 +79,36 @@ public class ProductService {
                 product.getModel(),
                 product.getFlavor(),
                 product.getCost(),
-                product.getPrice()
+                product.getPrice(),
+                product.getInventory() != null ? product.getInventory().getAvailable_quantity() : 0
         );
     }
 
     @Transactional
-    public ProductResponseDTO editProductByAttributes(ProductRequestDTO newData, User user) {
-        Product product = productRepository.findByNameAndModelAndFlavorAndUser(
-                newData.name(),
-                newData.model(),
-                newData.flavor(),
-                user
-        ).orElseThrow(() -> new RuntimeException("No se encontró el producto para editar"));
+    public ProductResponseDTO editProductById(Long id, ProductRequestDTO newData, User user) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("No se encontró el producto para editar"));
 
+        if (!product.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("No tienes permisos para editar este producto");
+        }
+
+        product.setName(newData.name());
+        product.setModel(newData.model());
+        product.setFlavor(newData.flavor());
         product.setCost(newData.cost());
         product.setPrice(newData.price());
+
+        if (product.getInventory() != null && newData.stock() != null) {
+            product.getInventory().setAvailable_quantity(newData.stock());
+        }
 
         productRepository.save(product);
 
         return new ProductResponseDTO(
                 product.getId(), product.getName(), product.getModel(),
-                product.getFlavor(), product.getCost(), product.getPrice()
+                product.getFlavor(), product.getCost(), product.getPrice(),
+                product.getInventory() != null ? product.getInventory().getAvailable_quantity() : 0
         );
     }
 
@@ -107,7 +117,8 @@ public class ProductService {
             String model,
             String flavor,
             BigDecimal cost,
-            BigDecimal price
+            BigDecimal price,
+            Integer stock
     ) {
     }
 
@@ -117,7 +128,8 @@ public class ProductService {
             String model,
             String flavor,
             BigDecimal cost,
-            BigDecimal price
+            BigDecimal price,
+            Integer stock
     ) {
     }
 }

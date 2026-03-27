@@ -17,25 +17,35 @@ import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 public class SecurityFilterConfig extends OncePerRequestFilter {
+
     private final TokenService tokenService;
     private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         var authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             var token = authHeader.replace("Bearer ", "");
-
-            var userName = tokenService.getSubject(token);
-
-            if (userName != null) {
-                var user = userRepository.findByUsername(userName).get();
-
-                var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+            try {
+                var userName = tokenService.getSubject(token);
+                if (userName != null) {
+                    userRepository.findByUsername(userName).ifPresent(user -> {
+                        var auth = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("Token inválido o expirado");
             }
         }
+
         filterChain.doFilter(request, response);
     }
 }

@@ -46,7 +46,8 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         if (!passwordEncoder.matches(loginData.password(), user.getPassword())) {
-            throw new RuntimeException("Contraseña incorrecta");
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED, "Contraseña incorrecta");
         }
 
         String token = tokenService.generateToken(user);

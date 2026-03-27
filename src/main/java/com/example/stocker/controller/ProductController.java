@@ -26,7 +26,9 @@ public class ProductController {
                         p.getModel(),
                         p.getFlavor(),
                         p.getCost(),
-                        p.getPrice()))
+                        p.getPrice(),
+                        p.getInventory() != null ? p.getInventory().getAvailable_quantity() : 0
+                ))
                 .toList();
         return ResponseEntity.ok(products);
     }
@@ -46,10 +48,11 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/edit")
+    @PutMapping("/edit/{id}")
     public ResponseEntity<ProductService.ProductResponseDTO> edit(
+            @PathVariable Long id,
             @RequestBody ProductService.ProductRequestDTO dto,
             @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(productService.editProductByAttributes(dto, user));
+        return ResponseEntity.ok(productService.editProductById(id, dto, user));
     }
 }
