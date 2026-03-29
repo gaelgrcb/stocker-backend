@@ -22,8 +22,10 @@ public class User implements UserDetails {
     private String email;
     @Column(unique = true, nullable = false)
     private String username;
-    @Column(nullable = false)
+    @Column(unique = true, nullable = false)
     private String password;
+    @Column(unique = true, nullable = false)
+    private String bussines;
     private String role;
 
     @Override
