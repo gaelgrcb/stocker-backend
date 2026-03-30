@@ -20,20 +20,20 @@ public class UserService {
 
     @Transactional
     public UserResponseDTO register(UserRegistrationDTO registrationData) {
-        if (userRepository.findByUsername(registrationData.username).isPresent()) {
-            // Cambiado a ResponseStatusException para que el frontend reciba un 409 (Conflict)
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "El usuario ya existe");
-        }
+        // 409 Conflict -> Activa el modal "¡Cuenta detectada!" en React
+        userRepository.findByUsername(registrationData.username())
+                .ifPresent(u -> {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "El usuario ya existe");
+                });
 
         User user = new User();
-        user.setName(registrationData.name);
-        user.setEmail(registrationData.email);
-        user.setUsername(registrationData.username);
-        user.setBussines(registrationData.bussines);
+        user.setName(registrationData.name());
+        user.setEmail(registrationData.email());
+        user.setUsername(registrationData.username());
+        user.setBusiness(registrationData.business());
         user.setRole("user");
 
-        String encryptPass = passwordEncoder.encode(registrationData.password);
-        user.setPassword(encryptPass);
+        user.setPassword(passwordEncoder.encode(registrationData.password()));
 
         userRepository.save(user);
         String token = tokenService.generateToken(user);
@@ -42,37 +42,22 @@ public class UserService {
     }
 
     public UserResponseDTO login(UserLoginDTO loginData) {
-        //Lanzar 404 si el usuario no existe
+        // 404 Not Found -> Activa el modal "¿Quieres crear una cuenta?"
         User user = userRepository.findByUsername(loginData.username())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
-        //Lanzar 401 si la contraseña es incorrecta
+        // 401 Unauthorized -> Activa el modal "Contraseña incorrecta"
         if (!passwordEncoder.matches(loginData.password(), user.getPassword())) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED, "Contraseña incorrecta");
         }
 
         String token = tokenService.generateToken(user);
-
         return new UserResponseDTO(user.getUsername(), token);
     }
 
-    public record UserRegistrationDTO(
-            String name,
-            String email,
-            String bussines,
-            String username,
-            String password
-    ) {}
-
-    public record UserLoginDTO(
-            String username,
-            String password
-    ) {}
-
-    public record UserResponseDTO(
-            String username,
-            String token
-    ) {}
+    public record UserRegistrationDTO(String name, String email, String business, String username, String password) {}
+    public record UserLoginDTO(String username, String password) {}
+    public record UserResponseDTO(String username, String token) {}
 }

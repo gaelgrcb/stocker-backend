@@ -39,7 +39,7 @@ public class InventoryService {
     }
 
     public List<InventoryResponseDTO> getInventoryByUser(User user) {
-        Optional<Inventory> inventories = inventoryRepository.findAllByUser(user);
+        List<Inventory> inventories = inventoryRepository.findByUser(user);
         return inventories.stream()
                 .map(this::mapToResponseDTO)
                 .toList();

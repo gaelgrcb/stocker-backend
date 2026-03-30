@@ -19,18 +19,8 @@ public class ProductController {
 
     @GetMapping("/all")
     public ResponseEntity<List<ProductService.ProductResponseDTO>> getAll(@AuthenticationPrincipal User user) {
-        var products = productService.getProducts(user).stream()
-                .map(p -> new ProductService.ProductResponseDTO(
-                        p.getId(),
-                        p.getName(),
-                        p.getModel(),
-                        p.getFlavor(),
-                        p.getCost(),
-                        p.getPrice(),
-                        p.getInventory() != null ? p.getInventory().getAvailable_quantity() : 0
-                ))
-                .toList();
-        return ResponseEntity.ok(products);
+        // Dejamos que el service se encargue de la lógica de conversión
+        return ResponseEntity.ok(productService.getAllProducts(user));
     }
 
     @PostMapping("/create")
@@ -54,5 +44,11 @@ public class ProductController {
             @RequestBody ProductService.ProductRequestDTO dto,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(productService.editProductById(id, dto, user));
+    }
+
+    // NUEVO: Endpoint para las métricas del Dashboard
+    @GetMapping("/metrics")
+    public ResponseEntity<ProductService.DashboardMetricsDTO> getMetrics(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(productService.getDashboardMetrics(user));
     }
 }

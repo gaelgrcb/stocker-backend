@@ -25,7 +25,7 @@ public class User implements UserDetails {
     @Column(unique = true, nullable = false)
     private String password;
     @Column(unique = true, nullable = false)
-    private String bussines;
+    private String business;
     private String role;
 
     @Override
