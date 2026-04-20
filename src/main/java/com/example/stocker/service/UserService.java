@@ -26,6 +26,11 @@ public class UserService {
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "El usuario ya existe");
                 });
 
+        if (registrationData.username().equalsIgnoreCase("admin")) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "El nombre de usuario 'admin' está reservado por el sistema");
+        }
+
         User user = new User();
         user.setName(registrationData.name());
         user.setEmail(registrationData.email());
@@ -57,7 +62,12 @@ public class UserService {
         return new UserResponseDTO(user.getUsername(), token);
     }
 
-    public record UserRegistrationDTO(String name, String email, String business, String username, String password) {}
-    public record UserLoginDTO(String username, String password) {}
-    public record UserResponseDTO(String username, String token) {}
+    public record UserRegistrationDTO(String name, String email, String business, String username, String password) {
+    }
+
+    public record UserLoginDTO(String username, String password) {
+    }
+
+    public record UserResponseDTO(String username, String token) {
+    }
 }
